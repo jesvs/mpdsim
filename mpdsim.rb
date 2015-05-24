@@ -17,6 +17,7 @@ OptionParser.new do |opts|
   options[:replace]     = config['replace'] || false
   options[:autocorrect] = config['autocorrect'].to_i || 1
   options[:load]        = config['load'] || true
+  options[:duplicates]  = config['duplicates'] || false
 
   opts.on("-aNAME", "--artist=NAME", "Artist name") do |a|
     options[:artist] = a
@@ -46,34 +47,61 @@ OptionParser.new do |opts|
     options[:load] = o
   end
 
+  opts.on("-d", "--[no-]duplicates", "Keep duplicates") do |d|
+    options[:duplicates] = d
+  end
+
+  opts.on("-s", "--[no-]shuffle", "Shuffle results") do |n|
+    options[:shuffle] = n
+  end
+
+  opts.on("-q", "--quiet", "Quiet, no ouput") do |q|
+    options[:quiet] = q
+  end
+
+  opts.on("-v", "--verbose", "Be verbose, shows added tracks") do |v|
+    options[:verbose] = v
+  end
+
   opts.on("-h", "--help", "Prints this help") do
     puts opts
     exit
   end
 end.parse!
+quiet   = options[:quiet]
+verbose = options[:verbose]
 
-# Last FM
 lastfm = Lastfm.new config['api_key'], config['api_secret']
+mpd    = MPD.new config['mpd_host'], config['mpd_port']
 
-# MPD
-mpd = MPD.new config['mpd_host'], config['mpd_port']
-
-mpd.connect
 begin
-  if options[:artist].nil? && options[:track].nil?
-    current_song = mpd.current_song
-    song = { artist: current_song.artist, track: current_song.title }
-  else
-    song = { artist: options[:artist], track: options[:track] }
-  end
-rescue NoMethodError
-  puts "You must specify artist and title"
+  mpd.connect
+rescue
+  print "Could not connect to MPD server."
   exit 1
 end
-song[:limit] = options[:limit] || 10
-song[:autocorrect] = options[:autocorrect] || true
 
-similar = lastfm.track.get_similar(song)
+begin
+  # Build query from currently playing song or options
+  if options[:artist].nil? && options[:track].nil?
+    current_song = mpd.current_song
+    query = { artist: current_song.artist, track: current_song.title }
+  else
+    query = { artist: options[:artist], track: options[:track] }
+  end
+rescue NoMethodError
+  puts "Error: You must specify artist and title"
+  exit 1
+end
+
+query[:limit]       = options[:limit] || 10
+query[:autocorrect] = options[:autocorrect] || true
+
+unless quiet
+  puts "Getting #{query[:limit]} similar tracks to #{query[:artist]} - #{query[:track]}"
+end
+
+similar = lastfm.track.get_similar(query)
 
 similar_tracks = []
 begin
@@ -81,26 +109,65 @@ begin
     artist  = track['artist']['name']
     title   = track['name']
     results = mpd.where( artist: artist, title: title )
-    similar_tracks << results.first unless results.empty?
+    unless results.empty?
+      if options[:duplicates]
+        similar_tracks << results
+      else
+        if options[:shuffle]
+          similar_tracks << results[rand(0...results.size)]
+        else
+          similar_tracks << results.first
+        end
+      end
+    end
   end
 rescue NoMethodError
   puts "Nothing found!"
   exit 1
 end
 similar_tracks.flatten!
+similar_tracks.shuffle! if options[:shuffle]
 mpd.clear if options[:replace]
+
+# print found tracks
+if verbose
+  similar_tracks.each do |t|
+    puts "#{t.artist} - #{t.title}"
+  end
+end
 
 # create playlist
 if options[:playlist]
-  playlist = MPD::Playlist.new(mpd, "Similar to #{song[:artist]} - #{song[:track]}")
-  # add requested song to playlist
-  playlist.add mpd.where(artist: song[:artist], title: song[:track]).first
+  playlist = MPD::Playlist.new(mpd, "Similar to #{query[:artist]} - #{query[:track]}")
+  
+  # add requested track to playlist
+  results = mpd.where(artist: query[:artist], title: query[:track])
+  if options[:shuffle]
+    playlist.add results[rand(0...results.size)]
+  else
+    playlist.add results.first
+  end
+
+  # add found tracks
   similar_tracks.each do |track|
     playlist.add track
   end
   playlist.load if options[:load]
 else
+  # add requested song to queue
+  results = mpd.where(artist: query[:artist], title: query[:track])
+  if options[:duplicates]
+    if options[:shuffle]
+      mpd.add results[rand(0...results.size)]
+    else
+      mpd.add results
+    end
+  else
+    mpd.add results[rand(0...results.size)]
+  end
+
   similar_tracks.each do |track|
     mpd.add track
   end
 end
+mpd.disconnect
