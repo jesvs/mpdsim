@@ -71,8 +71,6 @@ end
 song[:limit] = options[:limit] || 10
 song[:autocorrect] = options[:autocorrect] || true
 
-p song
-
 similar = lastfm.track.get_similar(song)
 
 similar_tracks = []
