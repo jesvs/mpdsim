@@ -16,7 +16,7 @@ mpdsim:
   playlist: true
 ```
 
-Examples:
+== Examples
 
 Get similar tracks to the currently playing song and `--limit` last.fm results to 20:
 
