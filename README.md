@@ -26,7 +26,7 @@ Specify the `--artist` and `--track` to get similar songs:
 
     $ mpdsim.rb -a "Pink Floyd" -t "Wish You Were Here"
 
-The default behavior is to create a playlist titled "Similar to <Artist> - <Song>",
+The default behavior is to create a playlist titled "Similar to [Artist] - [Song]",
 you can skip creating the playlist with the `--no-playlist` option:
 
     $ mpdsim.rb --no-playlist
