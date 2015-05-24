@@ -12,9 +12,11 @@ options = {}
 OptionParser.new do |opts|
   opts.banner = "Usage: #{$0} [options]"
 
-  options[:limit] = config['limit'] || 50
+  options[:limit]       = config['limit'] || 50
+  options[:playlist]    = config['playlist'] || true
+  options[:replace]     = config['replace'] || false
   options[:autocorrect] = config['autocorrect'].to_i || 1
-  options[:load] = config['load'] || true
+  options[:load]        = config['load'] || true
 
   opts.on("-aNAME", "--artist=NAME", "Artist name") do |a|
     options[:artist] = a
