@@ -3,7 +3,8 @@
 require 'yaml'
 require 'optparse'
 require "bundler"
-Bundler.require
+require 'lastfm'
+require 'ruby-mpd'
 
 config = YAML.load_file(File.join(File.expand_path('~'), '.config', 'mpdsim.conf'))['mpdsim']
 
