@@ -55,6 +55,10 @@ OptionParser.new do |opts|
     options[:shuffle] = n
   end
 
+  opts.on("-n", "--random", "Similar tracks from a random track from the database") do |n|
+    options[:random] = n
+  end
+
   opts.on("-q", "--quiet", "Quiet, no ouput") do |q|
     options[:quiet] = q
   end
@@ -81,9 +85,17 @@ rescue
   exit 1
 end
 
+if options[:random]
+  files = mpd.send_command 'list file'
+  file = files[rand(0...files.size)]
+  song = mpd.where(file: file).first
+  options[:artist] = song.artist
+  options[:track] = song.title
+end
+
 begin
   # Build query from currently playing song or options
-  if options[:artist].nil? && options[:track].nil?
+  if options[:artist].nil? || options[:track].nil?
     current_song = mpd.current_song
     query = { artist: current_song.artist, track: current_song.title }
   else
@@ -104,30 +116,36 @@ end
 similar = lastfm.track.get_similar(query)
 
 similar_tracks = []
-begin
-  similar.each do |track|
-    artist  = track['artist']['name']
-    title   = track['name']
+if !similar.is_a? Array
+  puts "Nothing found"
+  exit 0
+end
+similar.each do |track|
+  artist  = track['artist']['name']
+  title   = track['name']
+  begin
     results = mpd.where( artist: artist, title: title )
-    unless results.empty?
-      if options[:duplicates]
-        similar_tracks << results
+  rescue
+    puts $!
+  end
+  if !results.nil? && !results.empty?
+    if options[:duplicates]
+      similar_tracks << results
+    else
+      if options[:shuffle]
+        similar_tracks << results[rand(0...results.size)]
       else
-        if options[:shuffle]
-          similar_tracks << results[rand(0...results.size)]
-        else
-          similar_tracks << results.first
-        end
+        similar_tracks << results.first
       end
     end
   end
-rescue NoMethodError
-  puts "Nothing found!"
-  exit 1
 end
+
 similar_tracks.flatten!
 similar_tracks.shuffle! if options[:shuffle]
 mpd.clear if options[:replace]
+
+puts "#{similar_tracks.size} tracks added from database." unless quiet
 
 # print found tracks
 if verbose

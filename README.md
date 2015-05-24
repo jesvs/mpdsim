@@ -56,3 +56,11 @@ Found similar tracks are added in similarity order to the queue/playlist,
 using the `--shuffle` option the order is randomized.
 
     $ mpdsim.rb --shuffle
+
+Get a random track from the database and create a similar playlist from it:
+
+    $ mpdsim.rb --random
+
+Same as above but replaces current queue and doesn't create a playlist:
+
+    $ mpdsim.rb --random --no-playlist --replace
