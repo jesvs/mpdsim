@@ -20,18 +20,18 @@ Examples:
 
 Get similar tracks to the currently playing song and `--limit` last.fm results to 20:
 
-  $ mpdsim.rb -l 20
+    $ mpdsim.rb -l 20
 
 Specify the `--artist` and `--track` to get similar songs:
 
-  $ mpdsim.rb -a "Pink Floyd" -t "Wish You Were Here"
+    $ mpdsim.rb -a "Pink Floyd" -t "Wish You Were Here"
 
 The default behavior is to create a playlist titled "Similar to <Artist> - <Song>",
 you can skip creating the playlist with the `--no-playlist` option:
 
-  $ mpdsim.rb --no-playlist
+    $ mpdsim.rb --no-playlist
 
 The results will be added to the queue, unless the `--replace` option is given, which
 replaces the current queue with the results:
 
-  $ mpdsim.rb --replace
+    $ mpdsim.rb --replace
