@@ -64,3 +64,7 @@ Get a random track from the database and create a similar playlist from it:
 Same as above but replaces current queue and doesn't create a playlist:
 
     $ mpdsim.rb --random --no-playlist --replace
+
+Append similar tracks to the queue based on what is currently playing
+
+    $ mpdsim.rb --append
