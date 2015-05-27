@@ -64,6 +64,12 @@ OptionParser.new do |opts|
     options[:quiet] = q
   end
 
+  opts.on("-e", "--append", "Append to queue") do |e|
+    options[:append]   = e
+    options[:playlist] = false
+    options[:replace]  = false
+  end
+
   opts.on("-v", "--verbose", "Be verbose, shows added tracks") do |v|
     options[:verbose] = v
   end
@@ -108,7 +114,7 @@ rescue NoMethodError
 end
 
 query[:limit]       = options[:limit] || 10
-query[:autocorrect] = options[:autocorrect] || true
+query[:autocorrect] = options[:autocorrect] || 1
 
 unless quiet
   puts "Getting #{query[:limit]} similar tracks to #{query[:artist]} - #{query[:track]}"
@@ -126,6 +132,7 @@ similar.each do |track|
   title   = track['name']
   begin
     results = mpd.where( artist: artist, title: title )
+    next if results.nil?
   rescue
     puts $!
   end
@@ -155,16 +162,23 @@ if verbose
   end
 end
 
+if options[:append]
+  requested_track_query = nil
+else
+  requested_track_query = mpd.where(artist: query[:artist], title: query[:track])
+end
+
 # create playlist
 if options[:playlist]
   playlist = MPD::Playlist.new(mpd, "Similar to #{query[:artist]} - #{query[:track]}")
   
   # add requested track to playlist
-  results = mpd.where(artist: query[:artist], title: query[:track])
-  if options[:shuffle]
-    playlist.add results[rand(0...results.size)]
-  else
-    playlist.add results.first
+  if requested_track_query
+    if options[:shuffle]
+      playlist.add requested_track_query[rand(0...results.size)]
+    else
+      playlist.add requested_track_query.first
+    end
   end
 
   # add found tracks
@@ -174,19 +188,26 @@ if options[:playlist]
   playlist.load if options[:load]
 else
   # add requested song to queue
-  results = mpd.where(artist: query[:artist], title: query[:track])
-  if options[:duplicates]
-    if options[:shuffle]
-      mpd.add results[rand(0...results.size)]
+  if requested_track_query
+    if options[:duplicates]
+      if options[:shuffle]
+        mpd.add requested_track_query.shuffle
+      else
+        mpd.add requested_track_query
+      end
     else
-      mpd.add results
+      # add just one requested track found
+      if options[:suffle]
+        mpd.add requested_track_query[rand(0...results.size)]
+      else
+        mpd.add requested_track_query.first
+      end
     end
-  else
-    mpd.add results[rand(0...results.size)]
   end
 
   similar_tracks.each do |track|
     mpd.add track
   end
 end
+
 mpd.disconnect
