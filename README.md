@@ -28,7 +28,7 @@ Get similar tracks to the currently playing song and `--limit` last.fm results t
 
     $ mpdsim.rb -l 20
 
-Specify the `--artist` and `--track` to get similar songs:
+Specify the `--artist` and `--title` to get similar songs:
 
     $ mpdsim.rb -a "Pink Floyd" -t "Wish You Were Here"
 
@@ -45,7 +45,7 @@ replaces the current queue with the results:
 Query for 50 similar tracks and replace the current queue with songs similar to
 Zero 7 - In the Waiting Line:
 
-    $ mpdsim.rb --limit 50 --replace --no-playlist --artist "zero 7" --track "in the waiting line"
+    $ mpdsim.rb --limit 50 --replace --no-playlist --artist "zero 7" --title "in the waiting line"
 
 By default duplicates are not added to the queue/playlist, this behaviour can be
 changed with the `--duplicates` option:

@@ -24,8 +24,8 @@ OptionParser.new do |opts|
     options[:artist] = a
   end
 
-  opts.on("-tTITLE", "--track=NAME", "Track name") do |t|
-    options[:track] = t
+  opts.on("-tTITLE", "--title=NAME", "Track title") do |t|
+    options[:title] = t
   end
 
   opts.on("-lN", "--limit=N", "Limit search to N results (default #{options[:limit]})") do |l|
@@ -40,7 +40,7 @@ OptionParser.new do |opts|
     options[:replace] = r
   end
 
-  opts.on("-c", "--[no-]autocorrect", "Transform misspelled artist and track names into corrent one.") do |c|
+  opts.on("-c", "--[no-]autocorrect", "Transform misspelled artist and titles into corrent one.") do |c|
     options[:autocorrect] = 1 if c
   end
 
@@ -97,16 +97,16 @@ if options[:random]
   file = files[rand(0...files.size)]
   song = mpd.where(file: file).first
   options[:artist] = song.artist
-  options[:track] = song.title
+  options[:title] = song.title
 end
 
 begin
   # Build query from currently playing song or options
-  if options[:artist].nil? || options[:track].nil?
+  if options[:artist].nil? || options[:title].nil?
     current_song = mpd.current_song
     query = { artist: current_song.artist, track: current_song.title }
   else
-    query = { artist: options[:artist], track: options[:track] }
+    query = { artist: options[:artist], track: options[:title] }
   end
 rescue NoMethodError
   puts "Error: You must specify artist and title"
@@ -120,7 +120,12 @@ unless quiet
   puts "Getting #{query[:limit]} similar tracks to #{query[:artist]} - #{query[:track]}"
 end
 
-similar = lastfm.track.get_similar(query)
+begin
+  similar = lastfm.track.get_similar(query)
+rescue
+  puts $!
+  exit 1
+end
 
 similar_tracks = []
 if !similar.is_a? Array
